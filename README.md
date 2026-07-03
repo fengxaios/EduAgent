@@ -1,42 +1,105 @@
 # EduAgent
 
-> AI 驱动的教育技术智能体 — 课件、教案、高数、分镜、素材、数据采集，一站式教育内容生产引擎。
+> 🧠 面向教学场景的轻量级多智能体框架 — 规划 → 执行 → 反思，让 AI 真正参与教学设计
 
-## 能力矩阵
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)]()
 
-| 模块 | 核心能力 | 产出格式 |
-|------|----------|----------|
-| 📐 课件生成 | PPT大纲/幻灯片/模板 | .pptx |
-| 📝 教案撰写 | 教学设计/脚本/大纲 | .docx |
-| 🧮 高数拆解 | 知识点推导/类比/习题 | Markdown + LaTeX |
-| 🎬 视频策划 | 分镜脚本/钩子/转场 | 结构化表格 |
-| 🏆 竞赛支持 | 申报书/路演PPT/答辩 | .docx / .pptx |
-| 🏹 素材猎手 | 图片/图标/BGM/字体 | 资源索引 |
-| 🕷️ 数据采集 | 网页抓取/清洗/导出 | .xlsx / .json / .csv |
-| 📊 数据分析 | 成绩/题库/统计 | .xlsx + 可视化 |
+## ✨ 亮点
 
-## 项目结构
+- 🏗️ **完整 Agent 架构**：规划(Plan) → 执行(Execute) → 反思(Reflect) 三阶段循环
+- 🤝 **多 Agent 协作**：智能路由 + 管线编排，多个 Agent 串行完成复杂教学任务
+- 🪶 **轻量级自研**：不依赖 LangChain 等重型框架，核心代码 < 500 行
+- 🔧 **工具系统**：灵活的 Function Calling 注册机制，Agent 可调用外部工具
+- 🧠 **双通道记忆**：对话上下文 + 知识库，越用越聪明
+- 📚 **教学专项**：教案设计、习题生成、知识点拆解三大教学 Agent 开箱即用
+
+## 🏗️ 架构
 
 ```
 EduAgent/
-├── skills/           # Agent技能定义
-├── templates/        # 课件/文档/脚本模板
-├── examples/         # 示例产出
-├── tools/            # 辅助脚本
-└── docs/             # 文档
+├── core/                     # Agent 核心框架
+│   ├── agent.py              # Agent 基类（规划/执行/反思）
+│   ├── orchestrator.py       # 多 Agent 编排器（路由 + 管线）
+│   ├── memory.py             # 双通道记忆系统
+│   └── tools.py              # 工具注册与调用
+├── agents/                   # 教学专项 Agent
+│   ├── lesson_planner.py     # 教案设计 Agent
+│   ├── quiz_generator.py     # 习题生成 Agent
+│   └── knowledge_mapper.py   # 知识点拆解 Agent
+├── outputs/                  # 输出模板（教案/习题/PPT）
+├── examples/                 # 使用示例
+├── tests/                    # 单元测试
+└── README.md
 ```
 
-## 快速开始
+## 🚀 快速开始
 
-描述需求即可，Agent 自动激活对应技能：
+### 安装
 
+```bash
+git clone https://github.com/fengxaios/EduAgent.git
+cd EduAgent
+pip install -r requirements.txt
 ```
-「拆解拉格朗日中值定理，做3页PPT」
-「写一个60秒高数科普视频的分镜脚本」
-「帮我整理这份竞赛申报书的结构」
-「把这几道题爬下来整理成Excel题库」
+
+### 配置
+
+```bash
+# 复制配置模板
+cp .env.example .env
+# 编辑 .env，填入你的 API Key
 ```
 
-## 许可
+支持任何兼容 OpenAI API 的 LLM 服务（阿里云百炼、DeepSeek、OpenAI 等）。
+
+### 三分钟上手
+
+```python
+from core import Orchestrator
+from agents import LessonPlannerAgent, QuizGeneratorAgent, KnowledgeMapperAgent
+
+# 初始化
+orchestrator = Orchestrator()  # 自动读取 .env
+
+# 注册 Agent
+orchestrator.register_all([
+    LessonPlannerAgent(),
+    QuizGeneratorAgent(),
+    KnowledgeMapperAgent(),
+])
+
+# 智能路由：自动选择合适的 Agent
+result = orchestrator.route("为高二设计一节「导数与切线」的教案")
+print(result['result'])
+
+# 管线协作：多个 Agent 串行工作
+results = orchestrator.pipeline([
+    {"agent": "knowledge_mapper", "task": "拆解「定积分」知识点"},
+    {"agent": "lesson_planner", "task": "生成定积分教案"},
+    {"agent": "quiz_generator", "task": "出5道配套练习题"},
+])
+```
+
+## 🧩 扩展自定义 Agent
+
+```python
+from core import Agent
+
+class MyAgent(Agent):
+    def get_system_prompt(self) -> str:
+        return "你是一个擅长XXX的助手"
+
+# 注册到编排器即可
+my_agent = MyAgent(name="my_agent")
+orchestrator.register(my_agent)
+```
+
+## 📋 参与贡献
+
+欢迎 PR！本项目参加 [沐曦青年开源专项基金种子计划](https://mp.weixin.qq.com/s/tJ4KRSR-hQTeJN7zGsqLOw)，目标构建最实用的教学 Agent 框架。
+
+## 📄 许可
 
 Apache License 2.0 — 详见 [LICENSE](LICENSE)
