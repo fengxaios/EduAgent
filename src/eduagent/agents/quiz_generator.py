@@ -4,7 +4,7 @@
 
 from typing import Any, Dict, Literal
 
-from core.agent import Agent
+from eduagent.core.agent import Agent
 
 DifficultyType = Literal["basic", "intermediate", "advanced", "all"]
 
@@ -58,7 +58,8 @@ class QuizGeneratorAgent(Agent):
         return super().run(task, **context)
 
     def get_system_prompt(self) -> str:
-        return """你是一位经验丰富的命题专家，擅长设计分层练习题。
+        template = self._get_template_hint()
+        return f"""你是一位经验丰富的命题专家，擅长设计分层练习题。
 
 ## 你的能力
 - 根据知识点生成难度递进的习题
@@ -66,9 +67,12 @@ class QuizGeneratorAgent(Agent):
 - 每道题附带参考答案和分步解析
 - 题目难度按用户指定的层级生成
 
+## 参考模板
+{template}
+
 ## 输出规范
 
-# {知识点} - 分层练习题
+# {{知识点}} - 分层练习题
 
 > 核心知识点回顾（2-3句概括关键公式/定理）
 
@@ -99,3 +103,10 @@ A. ... B. ... C. ... D. ...
 - 解答题给出完整分步推导，标注关键步骤
 - 数学公式使用 LaTeX 格式（$...$ 或 $$...$$）
 - 每道题必须标注易错点（⚠️ 易错点）"""
+
+    def _get_template_hint(self) -> str:
+        try:
+            tmpl = self.load_template("quiz_template")
+            return f"模板参考:\n{tmpl}"
+        except FileNotFoundError:
+            return ""

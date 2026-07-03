@@ -6,6 +6,7 @@ import json
 import logging
 import re
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Callable, Literal
 
 from openai import OpenAI
@@ -67,6 +68,14 @@ class Agent(ABC):
     def configure_llm(self, client: OpenAI):
         """注入 LLM 客户端（由 Orchestrator 统一管理）"""
         self.client = client
+
+    def load_template(self, name: str) -> str:
+        """加载 outputs/ 目录中的输出模板"""
+        template_dir = Path(__file__).resolve().parent.parent / "outputs"
+        tmpl_path = template_dir / f"{name}.md"
+        if not tmpl_path.exists():
+            raise FileNotFoundError(f"模板不存在: {tmpl_path}")
+        return tmpl_path.read_text(encoding="utf-8")
 
     # ─── 主流程 ────────────────────────────────
 
@@ -215,7 +224,7 @@ class Agent(ABC):
             raise
 
     def _call_llm_with_tools(self, system: str, prompt: str) -> str:
-        """调用 LLM + 工具（Function Calling）"""
+        """调用 LLM + 工具（Function Calling），支持多轮工具链式调用"""
         if not self.client:
             raise RuntimeError("LLM 客户端未配置")
 
@@ -225,24 +234,34 @@ class Agent(ABC):
             {"role": "user", "content": prompt},
         ]
         tool_schemas = self.tools.get_schema()
+        max_tool_rounds = 5  # 防止无限循环
 
         try:
-            resp = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                tools=tool_schemas if tool_schemas else None,
-                temperature=0.7,
-                max_tokens=4096,
-            )
+            for round_num in range(max_tool_rounds):
+                resp = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    tools=tool_schemas if tool_schemas else None,
+                    temperature=0.7,
+                    max_tokens=4096,
+                )
 
-            msg = resp.choices[0].message
+                msg = resp.choices[0].message
 
-            # 处理工具调用
-            if msg.tool_calls:
+                # 无工具调用 → 返回文本结果
+                if not msg.tool_calls:
+                    content = msg.content or ""
+                    self.memory.add_message("assistant", content)
+                    return content
+
+                # 有工具调用 → 逐个执行
                 for tc in msg.tool_calls:
                     func_name = tc.function.name
                     func_args = json.loads(tc.function.arguments)
-                    logger.info(f"[{self.name}] 调用工具: {func_name}({func_args})")
+                    logger.info(
+                        f"[{self.name}] 工具调用 (第{round_num+1}轮): "
+                        f"{func_name}({func_args})"
+                    )
                     try:
                         result = self.tools.call(func_name, **func_args)
                         messages.append({
@@ -251,23 +270,45 @@ class Agent(ABC):
                             "content": str(result),
                         })
                     except Exception as e:
+                        logger.error(f"工具 {func_name} 执行失败: {e}")
                         messages.append({
                             "role": "tool",
                             "tool_call_id": tc.id,
                             "content": f"工具错误: {e}",
                         })
 
-                # 继续对话获取最终结果
-                final_resp = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    temperature=0.7,
-                    max_tokens=4096,
-                )
-                content = final_resp.choices[0].message.content or ""
-            else:
-                content = msg.content or ""
+                # 追加 assistant 消息（含 tool_calls）到上下文
+                messages.append({
+                    "role": "assistant",
+                    "content": msg.content or "",
+                    "tool_calls": [
+                        {
+                            "id": tc.id,
+                            "type": "function",
+                            "function": {
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments,
+                            },
+                        }
+                        for tc in msg.tool_calls
+                    ],
+                })
 
+            # 达到最大轮数仍未结束
+            logger.warning(
+                f"[{self.name}] 工具调用达到最大轮数 {max_tool_rounds}，返回最后一轮结果"
+            )
+            # 最后请求一次总结
+            final_resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages + [{
+                    "role": "user",
+                    "content": "请基于以上工具调用结果，给出最终回答。",
+                }],
+                temperature=0.7,
+                max_tokens=4096,
+            )
+            content = final_resp.choices[0].message.content or ""
             self.memory.add_message("assistant", content)
             return content
 

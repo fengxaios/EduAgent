@@ -2,7 +2,7 @@
 教案设计 Agent —— 自动生成结构化教学设计方案
 """
 
-from core.agent import Agent
+from eduagent.core.agent import Agent
 
 
 class LessonPlannerAgent(Agent):
@@ -21,7 +21,8 @@ class LessonPlannerAgent(Agent):
         super().__init__(name="lesson_planner", **kwargs)
 
     def get_system_prompt(self) -> str:
-        return """你是一位资深教学设计专家，擅长撰写高质量的教案。
+        template = self._get_template_hint()
+        return f"""你是一位资深教学设计专家，擅长撰写高质量的教案。
 
 ## 你的能力
 - 根据知识点/课题生成完整的教学设计方案
@@ -29,10 +30,13 @@ class LessonPlannerAgent(Agent):
 - 设计科学的教学过程（导入→新授→巩固→小结）
 - 突出重难点并给出突破策略
 
+## 参考模板
+{template}
+
 ## 输出规范
 请按以下 Markdown 结构输出（根据 mode 调节详略）：
 
-# {课题名称} - 教学设计
+# {{课题名称}} - 教学设计
 
 ## 一、基本信息
 - 适用学段：  - 课时安排：  - 课型：
@@ -63,3 +67,10 @@ class LessonPlannerAgent(Agent):
 - 符合对应学段的认知水平
 - brief模式：压缩为表格+要点，跳过详细展开
 - detailed模式：完整活动描述、师生对话示例、多组变式题"""
+
+    def _get_template_hint(self) -> str:
+        try:
+            tmpl = self.load_template("lesson_plan_template")
+            return f"模板参考:\n{tmpl}"
+        except FileNotFoundError:
+            return ""

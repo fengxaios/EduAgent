@@ -4,6 +4,7 @@ EduAgent 多 Agent 编排器 —— 负责任务分发与 Agent 协作
 
 import logging
 import os
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
@@ -11,8 +12,18 @@ from openai import OpenAI
 
 from .agent import Agent
 
-# 自动加载 .env 配置
-load_dotenv()
+# 自动加载 .env — 从包位置向上查找项目根目录
+def _find_project_root() -> Path:
+    """从当前文件向上查找包含 .env 的目录"""
+    current = Path(__file__).resolve().parent
+    for _ in range(5):  # 最多向上 5 层
+        if (current / ".env").exists():
+            return current
+        current = current.parent
+    return Path.cwd()
+
+_project_root = _find_project_root()
+load_dotenv(_project_root / ".env")
 
 logger = logging.getLogger(__name__)
 
@@ -106,8 +117,12 @@ class Orchestrator:
 
     def pipeline(self, tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        管线执行：多个 Agent 串行协作
+        管线执行：多个 Agent 串行协作，上下文逐级累积传递
         tasks 格式: [{"agent": "lesson_planner", "task": "..."}, ...]
+
+        后续 Agent 可以通过 shared_context 访问之前所有 Agent 的输出：
+        - shared_context["previous_result"] — 上一个 Agent 的输出
+        - shared_context["pipeline_results"] — 所有已完成 Agent 的输出列表
         """
         results = []
         shared_context = {}
@@ -117,6 +132,11 @@ class Orchestrator:
             task = item.get("task", "")
 
             if agent_name and agent_name in self.agents:
+                # 注入累积上下文
+                shared_context["pipeline_results"] = [
+                    {"agent": r["agent"], "task": r["task"], "result": r.get("result", "")}
+                    for r in results if "result" in r
+                ]
                 result = self.agents[agent_name].run(task, **shared_context)
                 shared_context["previous_result"] = result
                 results.append({"agent": agent_name, "task": task, "result": result})

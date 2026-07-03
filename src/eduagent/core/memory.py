@@ -1,7 +1,9 @@
 """
-EduAgent 记忆系统 —— 对话记忆 + 知识记忆双通道
+EduAgent 记忆系统 —— 对话记忆 + 知识记忆双通道（支持持久化）
 """
 
+import json
+import os
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -74,6 +76,44 @@ class Memory:
 
     def get_all_knowledge(self) -> Dict[str, Any]:
         return dict(self._knowledge)
+
+    # ─── 持久化 ──────────────────────────────
+
+    def save(self, filepath: str):
+        """将记忆持久化到 JSON 文件"""
+        os.makedirs(os.path.dirname(filepath) or ".", exist_ok=True)
+        data = {
+            "conversation": [
+                {
+                    "role": m.role,
+                    "content": m.content,
+                    "timestamp": m.timestamp,
+                    "metadata": m.metadata,
+                }
+                for m in self._conversation
+            ],
+            "knowledge": self._knowledge,
+            "max_turns": self.max_turns,
+        }
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    @classmethod
+    def load(cls, filepath: str) -> "Memory":
+        """从 JSON 文件恢复记忆"""
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        mem = cls(max_conversation_turns=data.get("max_turns", 20))
+        for msg_data in data.get("conversation", []):
+            mem._conversation.append(Message(
+                role=msg_data["role"],
+                content=msg_data["content"],
+                timestamp=msg_data.get("timestamp", ""),
+                metadata=msg_data.get("metadata", {}),
+            ))
+        mem._knowledge = data.get("knowledge", {})
+        return mem
 
     # ─── 序列化 ──────────────────────────────
 

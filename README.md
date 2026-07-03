@@ -19,18 +19,21 @@
 
 ```
 EduAgent/
-├── core/                     # Agent 核心框架
-│   ├── agent.py              # Agent 基类（规划/执行/反思）
-│   ├── orchestrator.py       # 多 Agent 编排器（路由 + 管线）
-│   ├── memory.py             # 双通道记忆系统
-│   └── tools.py              # 工具注册与调用
-├── agents/                   # 教学专项 Agent
-│   ├── lesson_planner.py     # 教案设计 Agent
-│   ├── quiz_generator.py     # 习题生成 Agent
-│   └── knowledge_mapper.py   # 知识点拆解 Agent
-├── outputs/                  # 输出模板（教案/习题/PPT）
-├── examples/                 # 使用示例
-├── tests/                    # 单元测试
+├── src/eduagent/              # Python 包
+│   ├── __init__.py            # 顶层导出
+│   ├── core/                  # Agent 核心框架
+│   │   ├── agent.py           # Agent 基类（规划/执行/反思）
+│   │   ├── orchestrator.py    # 多 Agent 编排器
+│   │   ├── memory.py          # 双通道记忆系统
+│   │   └── tools.py           # 工具注册与调用
+│   ├── agents/                # 教学专项 Agent
+│   │   ├── lesson_planner.py  # 教案设计
+│   │   ├── quiz_generator.py  # 习题生成
+│   │   └── knowledge_mapper.py # 知识点拆解
+│   └── outputs/               # 输出模板
+├── examples/                  # 使用示例
+├── tests/                     # 单元测试
+├── pyproject.toml             # 包配置 (pip install -e .)
 └── README.md
 ```
 
@@ -41,7 +44,7 @@ EduAgent/
 ```bash
 git clone https://github.com/fengxaios/EduAgent.git
 cd EduAgent
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ### 配置
@@ -57,11 +60,10 @@ cp .env.example .env
 ### 三分钟上手
 
 ```python
-from core import Orchestrator
-from agents import LessonPlannerAgent, QuizGeneratorAgent, KnowledgeMapperAgent
+from eduagent import Orchestrator, LessonPlannerAgent, QuizGeneratorAgent, KnowledgeMapperAgent
 
-# 初始化
-orchestrator = Orchestrator()  # 自动读取 .env
+# 初始化（自动读取 .env）
+orchestrator = Orchestrator()
 
 # 注册 Agent
 orchestrator.register_all([
@@ -85,7 +87,7 @@ results = orchestrator.pipeline([
 ## 🧩 扩展自定义 Agent
 
 ```python
-from core import Agent
+from eduagent import Agent
 
 class MyAgent(Agent):
     def get_system_prompt(self) -> str:

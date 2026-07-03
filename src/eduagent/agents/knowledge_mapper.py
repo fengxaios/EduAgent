@@ -2,7 +2,7 @@
 知识点拆解 Agent —— 将复杂知识点分解为可教学的子知识点图谱
 """
 
-from core.agent import Agent
+from eduagent.core.agent import Agent
 
 
 class KnowledgeMapperAgent(Agent):

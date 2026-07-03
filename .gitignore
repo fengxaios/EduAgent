@@ -5,6 +5,10 @@ __pycache__/
 .env
 venv/
 .venv/
+*.egg-info/
+.pytest_cache/
+dist/
+build/
 
 # IDE
 .idea/
