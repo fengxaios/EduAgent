@@ -263,7 +263,7 @@ class TestAgentBase:
         mock_response.choices = [
             MagicMock(message=MagicMock(
                 content="直接回答，无需工具",
-                tool_calls=None,
+                tool_calls=None,  # ← 显式 None
             ))
         ]
         mock_client.chat.completions.create.return_value = mock_response
@@ -291,15 +291,16 @@ class TestAgentBase:
             tool_calls=[tool_call],
         ))]
 
-        # 第二轮返回最终文本
+        # 第二轮返回最终文本 —— 必须显式设 tool_calls=None
         resp2 = MagicMock()
         resp2.choices = [MagicMock(message=MagicMock(
             content="北京今天晴天，25°C，适合出行。",
+            tool_calls=None,  # ← Mock 必须显式设 None
         ))]
 
         mock_client.chat.completions.create.side_effect = [resp1, resp2]
 
-        result = simple_agent._call_llm_with_tools("系统", "任务")
+        result = simple_agent._call_llm_with_tools("system", "task")
 
         assert "25°C" in result
         assert mock_client.chat.completions.create.call_count == 2
