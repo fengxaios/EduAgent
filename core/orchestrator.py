@@ -3,11 +3,16 @@ EduAgent 多 Agent 编排器 —— 负责任务分发与 Agent 协作
 """
 
 import logging
+import os
 from typing import Any, Dict, List, Optional
 
+from dotenv import load_dotenv
 from openai import OpenAI
 
 from .agent import Agent
+
+# 自动加载 .env 配置
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -134,5 +139,4 @@ class Orchestrator:
 
     @staticmethod
     def _env(key: str, default: str = "") -> str:
-        import os
         return os.getenv(key, default)

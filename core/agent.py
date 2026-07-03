@@ -143,7 +143,9 @@ class Agent(ABC):
                 max_tokens=4096,
             )
             content = resp.choices[0].message.content or ""
-            self.memory.add_message(role, content)
+            # 只存储标准 OpenAI 角色名，避免 "plan"/"reflect" 等自定义角色污染上下文
+            store_role = role if role in ("user", "assistant", "system") else "assistant"
+            self.memory.add_message(store_role, content)
             return content
         except Exception as e:
             logger.error(f"LLM 调用失败: {e}")
