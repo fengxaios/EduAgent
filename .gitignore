@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.env
+venv/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Output
+output/
+*.tmp
+temp/
+
+# Keys & Secrets
+*.key
+*.pem
+credentials.*
+
+# Node
+node_modules/
