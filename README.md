@@ -1,45 +1,72 @@
 # EduAgent
 
-> 🧠 面向教学场景的轻量级多智能体框架 — 规划 → 执行 → 反思，让 AI 真正参与教学设计
+> 🧠 A lightweight multi-agent framework for teaching — Plan → Execute → Reflect, making AI a real participant in instructional design
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)]()
+[![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)](https://github.com/fengxaios/EduAgent)
+[![Release](https://img.shields.io/badge/Release-v0.2.0-blue)](https://github.com/fengxaios/EduAgent/releases/tag/v0.2.0)
 
-## ✨ 亮点
+🇨🇳 [中文文档](README_CN.md)
 
-- 🏗️ **完整 Agent 架构**：规划(Plan) → 执行(Execute) → 反思(Reflect) 三阶段循环
-- 🤝 **多 Agent 协作**：智能路由 + 管线编排，多个 Agent 串行完成复杂教学任务
-- 🪶 **轻量级自研**：不依赖 LangChain 等重型框架，核心代码 < 500 行
-- 🔧 **工具系统**：灵活的 Function Calling 注册机制，Agent 可调用外部工具
-- 🧠 **双通道记忆**：对话上下文 + 知识库，越用越聪明
-- 📚 **教学专项**：教案设计、习题生成、知识点拆解三大教学 Agent 开箱即用
+## ✨ Highlights
 
-## 🏗️ 架构
+- 🏗️ **Complete Agent Architecture**: Plan → Execute → Reflect three-phase loop with automatic quality control
+- 🤝 **Multi-Agent Collaboration**: Intelligent routing + pipeline orchestration for complex teaching workflows
+- 🪶 **Lightweight & Self-Built**: Zero dependency on LangChain or other heavy frameworks; core logic under 500 lines
+- 🔧 **Flexible Tool System**: OpenAI-compatible Function Calling with a clean decorator-based registration API
+- 🧠 **Dual-Channel Memory**: Conversation context (sliding window) + knowledge base (persistent storage)
+- 🖼️ **Visual Understanding**: Built-in ImageAnalyzerAgent for OCR, formula recognition, and educational content extraction from images
+- 📚 **Education-Specialized**: Four dedicated teaching agents covering lesson planning, quiz generation, knowledge mapping, and image analysis
+
+## 🏗️ Architecture
 
 ```
 EduAgent/
-├── src/eduagent/              # Python 包
-│   ├── __init__.py            # 顶层导出
-│   ├── core/                  # Agent 核心框架
-│   │   ├── agent.py           # Agent 基类（规划/执行/反思）
-│   │   ├── orchestrator.py    # 多 Agent 编排器
-│   │   ├── memory.py          # 双通道记忆系统
-│   │   └── tools.py           # 工具注册与调用
-│   ├── agents/                # 教学专项 Agent
-│   │   ├── lesson_planner.py  # 教案设计
-│   │   ├── quiz_generator.py  # 习题生成
-│   │   └── knowledge_mapper.py # 知识点拆解
-│   └── outputs/               # 输出模板
-├── examples/                  # 使用示例
-├── tests/                     # 单元测试
-├── pyproject.toml             # 包配置 (pip install -e .)
+├── src/eduagent/                   # Python package
+│   ├── __init__.py                 # Top-level exports
+│   ├── core/                       # Core Agent framework
+│   │   ├── agent.py                # Agent base class (Plan→Execute→Reflect)
+│   │   ├── orchestrator.py         # Multi-agent orchestrator
+│   │   ├── memory.py               # Dual-channel memory system with persistence
+│   │   ├── tools.py                # Tool registry & Function Calling
+│   │   └── evaluator.py            # Offline quality evaluation framework
+│   ├── agents/                     # Specialized teaching agents
+│   │   ├── lesson_planner.py       # Lesson plan generation
+│   │   ├── quiz_generator.py       # Hierarchical quiz generation
+│   │   ├── knowledge_mapper.py     # Knowledge graph decomposition
+│   │   └── image_analyzer.py       # Multi-modal educational image analysis
+│   └── outputs/                    # Output templates
+├── examples/                       # Usage examples
+├── tests/                          # Unit tests
+├── app.py                          # Gradio web demo
+├── pyproject.toml                  # Package config (pip install -e .)
 └── README.md
 ```
 
-## 🚀 快速开始
+### Agent Lifecycle
 
-### 安装
+```
+User Task → [Plan] → [Execute] → [Reflect]
+                 ↑                        |
+                 └──── iterate if needed ──┘
+```
+
+Each agent follows a three-phase loop:
+1. **Plan** — Decompose the task into actionable steps
+2. **Execute** — Invoke tools or generate content via LLM
+3. **Reflect** — Self-evaluate output quality; retry if necessary
+
+Reflection strategy is configurable: `auto` (heuristic-based skip for well-structured outputs), `always`, or `never`.
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Python 3.10 or higher
+- An API key from a compatible LLM provider (Alibaba Cloud DashScope, OpenAI, DeepSeek, etc.)
+
+### Installation
 
 ```bash
 git clone https://github.com/fengxaios/EduAgent.git
@@ -47,61 +74,258 @@ cd EduAgent
 pip install -e .
 ```
 
-### 配置
+### Configuration
 
 ```bash
-# 复制配置模板
+# Copy the configuration template
 cp .env.example .env
-# 编辑 .env，填入你的 API Key
+
+# Edit .env with your API key
+# DASHSCOPE_API_KEY=sk-xxxxxxxxxxxx
 ```
 
-支持任何兼容 OpenAI API 的 LLM 服务（阿里云百炼、DeepSeek、OpenAI 等）。
+EduAgent uses the [OpenAI SDK](https://github.com/openai/openai-python) under the hood and is compatible with **any OpenAI-compatible API endpoint**.
 
-### 三分钟上手
+| Provider | Base URL Example |
+|----------|-----------------|
+| Alibaba DashScope (default) | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| OpenAI | `https://api.openai.com/v1` |
+| DeepSeek | `https://api.deepseek.com/v1` |
+| Ollama (local) | `http://localhost:11434/v1` |
+
+### Three-Minute Start
 
 ```python
 from eduagent import Orchestrator, LessonPlannerAgent, QuizGeneratorAgent, KnowledgeMapperAgent
 
-# 初始化（自动读取 .env）
+# Initialize (auto-loads .env)
 orchestrator = Orchestrator()
 
-# 注册 Agent
+# Register agents
 orchestrator.register_all([
     LessonPlannerAgent(),
     QuizGeneratorAgent(),
     KnowledgeMapperAgent(),
 ])
 
-# 智能路由：自动选择合适的 Agent
-result = orchestrator.route("为高二设计一节「导数与切线」的教案")
+# Intelligent routing: auto-selects the best agent
+result = orchestrator.route(
+    "Design a lesson plan on 'Derivatives and Tangent Lines' for high school sophomores"
+)
 print(result['result'])
 
-# 管线协作：多个 Agent 串行工作
+# Pipeline collaboration: multiple agents working in sequence
 results = orchestrator.pipeline([
-    {"agent": "knowledge_mapper", "task": "拆解「定积分」知识点"},
-    {"agent": "lesson_planner", "task": "生成定积分教案"},
-    {"agent": "quiz_generator", "task": "出5道配套练习题"},
+    {"agent": "knowledge_mapper", "task": "Decompose the knowledge points of 'Definite Integrals'"},
+    {"agent": "lesson_planner", "task": "Generate a lesson plan based on the decomposition"},
+    {"agent": "quiz_generator", "task": "Create 5 practice problems"},
 ])
 ```
 
-## 🧩 扩展自定义 Agent
+## 🧩 Core Agent Types
+
+### 1. LessonPlannerAgent
+
+Generates structured lesson plans with:
+- Learning objectives (Knowledge / Skill / Competency)
+- Key & difficult points with breakthrough strategies
+- Detailed teaching process (Engage → Teach → Practice → Synthesize)
+- Board design & homework assignments
+
+| Mode | Description | Approx. Length |
+|------|-------------|---------------|
+| `brief` | Outline only — key info, objectives, main flow | ~30 lines |
+| `standard` | Complete structure with moderate detail | ~60 lines |
+| `detailed` | Full activity design with teacher-student interaction scripts | ~100+ lines |
+
+### 2. QuizGeneratorAgent
+
+Generates tiered practice exercises with answers and step-by-step solutions:
+
+| Difficulty | Sections | Ideal Use Case |
+|-----------|----------|----------------|
+| `basic` | Foundation exercises | In-class practice after concept introduction |
+| `intermediate` | Foundation + Skill Building | Homework or unit quiz |
+| `advanced` | Skill Building + Challenge | Competition prep or advanced students |
+| `all` | All three tiers | Unit review or comprehensive assessment |
+
+Question types: Multiple choice, Fill-in-blank, Problem-solving, Proofs
+All answers include step-by-step derivations using LaTeX for math formulas.
+
+### 3. KnowledgeMapperAgent
+
+Decomposes complex knowledge domains into teachable modules:
+
+- **Knowledge Tree**: Hierarchical structure with difficulty ratings (★☆☆ ~ ★★★) and teaching method suggestions
+- **Prerequisite Dependencies**: Ordered learning paths (A → B = "must learn A before B")
+- **Teaching Routes**: Standard, fast-track, and deep-learning paths
+- **Common Misconceptions**: Specific student errors with correction strategies
+
+### 4. ImageAnalyzerAgent 🆕 v0.2.0
+
+Multi-modal agent for educational image analysis:
+
+- **OCR text extraction**: Printed materials, handwritten notes, blackboard shots
+- **Subject & knowledge point identification**: Automatic classification by discipline and grade level
+- **Formula recognition**: Outputs standard LaTeX for mathematical expressions
+- **Structured analysis**: Difficulty assessment, teaching suggestions, misconception warnings
+- **Multi-mode output**: `brief` (OCR only), `standard` (structured analysis), `detailed` (full teaching analysis)
+
+```python
+from eduagent import ImageAnalyzerAgent, Orchestrator
+
+orchestrator = Orchestrator()
+agent = ImageAnalyzerAgent(vision_model="qwen-vl-plus")
+orchestrator.register(agent)
+
+result = orchestrator.route(
+    "Analyze this exam paper for knowledge points and difficulty",
+    images=["path/to/exam_paper.jpg"]
+)
+```
+
+## 🔧 Extending with Custom Agents
+
+Creating a custom agent is as simple as defining a system prompt:
 
 ```python
 from eduagent import Agent
 
-class MyAgent(Agent):
+class MathTutorAgent(Agent):
     def get_system_prompt(self) -> str:
-        return "你是一个擅长XXX的助手"
+        return """You are an expert mathematics tutor specializing in calculus.
+Your responses should be step-by-step and pedagogical."""
 
-# 注册到编排器即可
-my_agent = MyAgent(name="my_agent")
-orchestrator.register(my_agent)
+# Register and use
+orchestrator.register(MathTutorAgent(name="math_tutor"))
 ```
 
-## 📋 参与贡献
+## 🛠️ Tool System
 
-欢迎 PR！本项目参加 [沐曦青年开源专项基金种子计划](https://mp.weixin.qq.com/s/tJ4KRSR-hQTeJN7zGsqLOw)，目标构建最实用的教学 Agent 框架。
+Register external functions as callable tools using the decorator API:
 
-## 📄 许可
+```python
+from eduagent import Agent, ToolRegistry
 
-Apache License 2.0 — 详见 [LICENSE](LICENSE)
+registry = ToolRegistry()
+
+@registry.register(name="calculate", description="Evaluate a mathematical expression")
+def calculate(expression: str):
+    return eval(expression)
+
+agent = LessonPlannerAgent(tools=registry)
+```
+
+Tools are automatically serialized to OpenAI Function Calling schemas, enabling LLMs to invoke them during task execution.
+
+## 🧪 Evaluation Framework
+
+The built-in **Evaluator** provides offline, rule-based quality scoring without additional LLM calls — useful for regression testing and CI integration:
+
+```python
+from eduagent import Evaluator
+
+evaluator = Evaluator()
+
+def run_fn(task, agent_name):
+    return orchestrator.agents[agent_name].run(task)
+
+results = evaluator.evaluate(run_fn)
+print(evaluator.render_report(results))
+```
+
+| Dimension | Weight | Description |
+|-----------|--------|-------------|
+| Completeness | 30% | Required section coverage |
+| Structure | 20% | Markdown hierarchy quality |
+| Accuracy | 25% | Keyword & concept coverage |
+| Actionability | 15% | Output usability (no filler text) |
+| Format | 10% | Title/list/table formatting |
+
+## 📦 Memory System
+
+```
+┌─────────────────────────────────┐
+│         Dual-Channel Memory     │
+├──────────────┬──────────────────┤
+│ Conversation │ Knowledge Base   │
+│ (sliding win)│ (persistent KV)  │
+├──────────────┼──────────────────┤
+│ • Context    │ • Facts          │
+│ • History    │ • Preferences    │
+│ • Auto-trim  │ • Searchable     │
+└──────────────┴──────────────────┘
+```
+
+```python
+from eduagent import Memory
+
+# Save memory to disk
+memory = Memory()
+memory.set_knowledge("favorite_style", "detailed lesson plans")
+memory.save("session_memory.json")
+
+# Restore later
+restored = Memory.load("session_memory.json")
+```
+
+## 🌐 Web Demo
+
+Launch the Gradio-based web interface:
+
+```bash
+pip install gradio
+python app.py
+```
+
+Features:
+- 🎯 **Single Agent Mode**: Select agent, task, mode, and difficulty
+- 🔗 **Pipeline Mode**: Chain knowledge_mapper → lesson_planner → quiz_generator
+- ℹ️ **System Status**: View registered agents and configuration
+
+The demo launches at `http://localhost:7860`.
+
+## 🧪 Testing
+
+```bash
+pip install -e ".[dev]"
+pytest tests/ -v
+```
+
+34 unit tests covering agent lifecycle, orchestrator routing, memory persistence, tool registration, and evaluation scoring.
+
+## 🗺️ Roadmap
+
+- [x] Core Agent framework (Plan → Execute → Reflect)
+- [x] Multi-agent orchestrator (routing + pipeline)
+- [x] Dual-channel memory with persistence
+- [x] Tool system (Function Calling)
+- [x] Lesson Planner, Quiz Generator, Knowledge Mapper agents
+- [x] Offline evaluator
+- [x] ImageAnalyzerAgent (v0.2.0)
+- [x] Gradio web demo
+- [ ] Multi-LLM provider auto-detection
+- [ ] Langfuse / Weave tracing integration
+- [ ] RAG-enhanced knowledge base
+- [ ] Learning path auto-generation
+- [ ] Student assessment & progress tracking
+
+## 🤝 Contributing
+
+Contributions are welcome! This project participates in the [MetaX Youth Open Source Seed Fund Program](https://mp.weixin.qq.com/s/tJ4KRSR-hQTeJN7zGsqLOw).
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+Apache License 2.0 — see [LICENSE](LICENSE)
+
+## 🙏 Acknowledgments
+
+- [MetaX（沐曦股份）](https://www.metax-tech.com/) & [CCF](https://www.ccf.org.cn/) — Youth Open Source Fund Program
+- [Alibaba Cloud DashScope](https://dashscope.aliyun.com/) — LLM API support
+- The open-source education community

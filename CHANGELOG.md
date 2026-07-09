@@ -2,6 +2,17 @@
 
 All notable changes to EduAgent will be documented in this file.
 
+## [0.2.0] - 2026-07-07
+
+### Added
+- **ImageAnalyzerAgent**: Multi-modal agent for educational image analysis supporting OCR text extraction, formula recognition (LaTeX output), subject/knowledge point identification, and structured teaching analysis in three output modes (brief/standard/detailed)
+- **Vision LLM support** in Agent base class (`_encode_image`, `_call_llm_vision`) with automatic base64 encoding and large-image warnings
+- **Auto .env discovery** from package location in Orchestrator
+- **Bilingual documentation**: English README.md + Chinese README_CN.md
+
+### Changed
+- `__init__.py` now exports `ImageAnalyzerAgent` and `Evaluator`
+
 ## [0.1.0] - 2026-07-03
 
 ### Added

@@ -21,6 +21,7 @@ from eduagent import (
     LessonPlannerAgent,
     QuizGeneratorAgent,
     KnowledgeMapperAgent,
+    ImageAnalyzerAgent,
 )
 
 # ─── 初始化 ──────────────────────────────────
@@ -30,6 +31,7 @@ orchestrator.register_all([
     LessonPlannerAgent(),
     QuizGeneratorAgent(),
     KnowledgeMapperAgent(),
+    ImageAnalyzerAgent(),
 ])
 
 AGENT_CHOICES = [
@@ -37,6 +39,7 @@ AGENT_CHOICES = [
     "lesson_planner (教案设计)",
     "quiz_generator (习题生成)",
     "knowledge_mapper (知识点拆解)",
+    "image_analyzer (图片识别分析)",
 ]
 
 MODE_CHOICES = ["standard (标准)", "brief (精简)", "detailed (详细)"]

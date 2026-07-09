@@ -2,6 +2,7 @@
 EduAgent Agent 基类 —— 规划 → 执行 → 反思 三阶段循环
 """
 
+import base64
 import json
 import logging
 import re
@@ -55,6 +56,7 @@ class Agent(ABC):
         max_iterations: int = 3,
         mode: ModeType = "standard",
         reflection: ReflectType = "auto",
+        vision_model: Optional[str] = None,
     ):
         self.name = name
         self.memory = memory or Memory()
@@ -63,6 +65,7 @@ class Agent(ABC):
         self.max_iterations = max_iterations
         self.mode: ModeType = mode
         self.reflection: ReflectType = reflection
+        self.vision_model = vision_model or model  # 视觉模型，默认同文本模型
         self.client: Optional[OpenAI] = None
 
     def configure_llm(self, client: OpenAI):
@@ -314,4 +317,90 @@ class Agent(ABC):
 
         except Exception as e:
             logger.error(f"LLM (tools) 调用失败: {e}")
+            raise
+
+    # ─── 视觉 LLM 调用 ─────────────────────────
+
+    @staticmethod
+    def _encode_image(image_path: str) -> str:
+        """将图片文件编码为 base64 data URI，用于多模态 LLM 调用"""
+        path = Path(image_path)
+        if not path.exists():
+            raise FileNotFoundError(f"图片不存在: {image_path}")
+
+        ext = path.suffix.lower()
+        mime_map = {
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".gif": "image/gif",
+            ".webp": "image/webp",
+            ".bmp": "image/bmp",
+        }
+        mime = mime_map.get(ext, "image/jpeg")
+
+        data = path.read_bytes()
+        # 图片过大时自动压缩（Qwen-VL 建议 < 20MB）
+        if len(data) > 10 * 1024 * 1024:
+            logger.warning(f"图片 {image_path} 超过 10MB，可能导致调用失败")
+        b64 = base64.b64encode(data).decode("utf-8")
+        return f"data:{mime};base64,{b64}"
+
+    def _call_llm_vision(
+        self,
+        prompt: str,
+        system: str = "",
+        images: Optional[List[str]] = None,
+        image_urls: Optional[List[str]] = None,
+        role: str = "user",
+    ) -> str:
+        """
+        调用视觉 LLM（支持图片输入）
+        使用 OpenAI 兼容的多模态 content 格式：
+        [{"type": "image_url", ...}, {"type": "text", ...}]
+        """
+        if not self.client:
+            raise RuntimeError("LLM 客户端未配置，请先调用 configure_llm()")
+
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.extend(self.memory.get_context(last_n=3))
+
+        # 构建多模态 content 数组
+        content_parts: List[Dict[str, Any]] = []
+
+        # 添加本地图片（base64 编码）
+        for img_path in (images or []):
+            data_uri = self._encode_image(img_path)
+            content_parts.append({
+                "type": "image_url",
+                "image_url": {"url": data_uri},
+            })
+
+        # 添加远程图片 URL
+        for url in (image_urls or []):
+            content_parts.append({
+                "type": "image_url",
+                "image_url": {"url": url},
+            })
+
+        # 添加文本 prompt
+        content_parts.append({"type": "text", "text": prompt})
+
+        messages.append({"role": "user", "content": content_parts})
+
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.vision_model,
+                messages=messages,
+                temperature=0.3,  # 视觉任务用低温度，提高准确性
+                max_tokens=4096,
+            )
+            content = resp.choices[0].message.content or ""
+            store_role = role if role in ("user", "assistant", "system") else "assistant"
+            self.memory.add_message(store_role, content)
+            return content
+        except Exception as e:
+            logger.error(f"视觉 LLM 调用失败: {e}")
             raise
