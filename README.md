@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)](https://github.com/fengxaios/EduAgent)
-[![Release](https://img.shields.io/badge/Release-v0.2.0-blue)](https://github.com/fengxaios/EduAgent/releases/tag/v0.2.0)
+[![Release](https://img.shields.io/badge/Release-v0.2.1-blue)](https://github.com/fengxaios/EduAgent/releases/tag/v0.2.1)
 
 🇨🇳 [中文文档](README_CN.md)
 
@@ -17,7 +17,7 @@
 - 🔧 **Flexible Tool System**: OpenAI-compatible Function Calling with a clean decorator-based registration API
 - 🧠 **Dual-Channel Memory**: Conversation context (sliding window) + knowledge base (persistent storage)
 - 🖼️ **Visual Understanding**: Built-in ImageAnalyzerAgent for OCR, formula recognition, and educational content extraction from images
-- 📚 **Education-Specialized**: Four dedicated teaching agents covering lesson planning, quiz generation, knowledge mapping, and image analysis
+- 📚 **Education-Specialized**: Five dedicated teaching agents covering lesson planning, quiz generation, knowledge mapping, image analysis, and auto-reporting
 
 ## 🏗️ Architecture
 
@@ -58,6 +58,64 @@ Each agent follows a three-phase loop:
 3. **Reflect** — Self-evaluate output quality; retry if necessary
 
 Reflection strategy is configurable: `auto` (heuristic-based skip for well-structured outputs), `always`, or `never`.
+
+## 🎬 Quick Demo
+
+### Lesson Plan (brief mode)
+```
+# Lagrange Mean Value Theorem — Lesson Plan
+
+## Basic Info
+- Grade: High School Year 2  |  Duration: 45 min  |  Type: New Lesson
+
+## Teaching Objectives
+### Knowledge & Skills
+- State the theorem: if f is continuous on [a,b] and differentiable on (a,b),
+  then ∃ ξ ∈ (a,b) such that f'(ξ) = [f(b)−f(a)]/(b−a)
+- Understand the geometric meaning (tangent parallel to secant)
+
+### Process & Method
+- Discover the proof via auxiliary function construction from Rolle's Theorem
+- GeoGebra dynamic demo → condition analysis → examples/counter-examples
+
+## Key Points & Strategies
+- Key: Theorem conditions, geometric meaning, and application
+- Strategy: Dynamic visualization + numerical approximation + physical gesture simulation
+```
+
+### Quiz Generation (basic difficulty)
+```
+# Limits: Arithmetic Operations — Layered Exercises
+
+## Core Review
+If lim f(x) = A and lim g(x) = B (finite), then:
+lim[f(x)±g(x)] = A±B,  lim[f(x)·g(x)] = AB,  lim[f(x)/g(x)] = A/B (B≠0)
+
+## 1. Basic Practice (12 min)
+### 1. [Multiple Choice] Given lim f(x)=4, lim g(x)=−1 as x→0, find lim[f(x)·g(x)+3]
+A. −7  B. −1  C. 1  D. 7
+> Answer: B  |  Explanation: 4×(−1)+3 = −1
+
+### 2. [Fill-in] lim(x→3) (x²−9)/(x−3) = ___
+> Answer: 6  |  Explanation: Factor: (x−3)(x+3)/(x−3) = x+3 → 6
+```
+
+### Pipeline Collaboration
+```python
+from eduagent import Orchestrator, LessonPlannerAgent, QuizGeneratorAgent, KnowledgeMapperAgent, ReporterAgent
+
+orch = Orchestrator()
+orch.register_all([KnowledgeMapperAgent(), LessonPlannerAgent(), QuizGeneratorAgent(), ReporterAgent()])
+
+# 4-agent pipeline: knowledge → lesson → quiz → report
+results = orch.pipeline([
+    {"agent": "knowledge_mapper", "task": "Decompose 'definite integrals' knowledge points"},
+    {"agent": "lesson_planner", "task": "Generate a lesson plan based on the decomposition"},
+    {"agent": "quiz_generator", "task": "Create 5 practice problems for the lesson"},
+    {"agent": "reporter", "task": "Write a pipeline analysis report"},
+])
+# Outputs a structured report with confidence estimates per agent
+```
 
 ## 🚀 Quick Start
 
