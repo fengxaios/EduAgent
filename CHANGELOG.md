@@ -2,6 +2,20 @@
 
 All notable changes to EduAgent will be documented in this file.
 
+## [1.0.0] - 2026-07-11
+
+### Added
+- **CLI interface** (`cli.py` + `__main__.py`): `python -m eduagent lesson/quiz/map/pipeline/status`
+- **CONTRIBUTING.md**: Contribution guide with project structure and conventions
+- **Production classifiers**: Development Status 5 - Production/Stable
+- **Console scripts**: `eduagent` command after `pip install`
+- **Type hints**: Added to all public API methods
+
+### Changed
+- Version bumped to 1.0.0 — production-ready release
+- pyproject.toml: expanded classifiers, added script entry points
+- README: updated badges to v1.0.0, added tests badge
+
 ## [0.2.1] - 2026-07-10
 
 ### Added
