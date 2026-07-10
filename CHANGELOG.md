@@ -2,6 +2,18 @@
 
 All notable changes to EduAgent will be documented in this file.
 
+## [0.2.1] - 2026-07-10
+
+### Added
+- **Structured Communication Protocol** (`structured_protocol.py`): Agent-to-agent JSON messaging inspired by PentAGI, with `AgentMessage` (task/status/artifact/confidence) and `PipelineReport` (auto-generated cross-analysis report)
+- **ReporterAgent**: Automatic pipeline output aggregation into structured Markdown reports with heuristic confidence estimation
+- **Pipeline experiment** (`examples/pipeline_experiment.py`): Three-part experiment demonstrating structured communication, auto-reporting, and protocol comparison
+- **Protocol comparison document**: Side-by-side comparison of plain-text vs structured agent communication
+
+### Changed
+- `__init__.py` now exports `AgentMessage`, `AgentStatus`, `PipelineReport`, `ReporterAgent`
+- Version bumped to 0.2.1
+
 ## [0.2.0] - 2026-07-07
 
 ### Added
