@@ -46,6 +46,12 @@ def get_parser() -> argparse.ArgumentParser:
     pl = sub.add_parser("pipeline", help="Run multi-agent pipeline")
     pl.add_argument("topic", help="Starting topic for the pipeline")
 
+    # diagnosis — learning diagnosis
+    diag = sub.add_parser("diagnosis", help="Diagnose student learning gaps")
+    diag.add_argument("topic", help="Knowledge area (e.g. '三角函数')")
+    diag.add_argument("--student", "-s", default="", help="Student name")
+    diag.add_argument("--mode", choices=["brief", "standard", "detailed"], default="standard")
+
     # status
     sub.add_parser("status", help="Show orchestrator status")
 
@@ -77,18 +83,21 @@ def run_pipeline(orchestrator: Orchestrator, args: argparse.Namespace) -> str:
     from eduagent.agents import (
         LessonPlannerAgent, QuizGeneratorAgent,
         KnowledgeMapperAgent, ReporterAgent,
+        LearningDiagnosisAgent,
     )
     orchestrator.register_all([
         KnowledgeMapperAgent(),
         LessonPlannerAgent(),
         QuizGeneratorAgent(),
+        LearningDiagnosisAgent(),
         ReporterAgent(),
     ])
     results = orchestrator.pipeline([
         {"agent": "knowledge_mapper", "task": f"拆解{args.topic}的知识点"},
         {"agent": "lesson_planner", "task": f"为{args.topic}生成教案"},
         {"agent": "quiz_generator", "task": f"为{args.topic}出5道练习题"},
-        {"agent": "reporter", "task": "生成管线分析报告"},
+        {"agent": "learning_diagnosis", "task": f"诊断{args.topic}学生答题情况"},
+        {"agent": "reporter", "task": "生成完整教学报告"},
     ])
     # Aggregate pipeline output
     lines = [f"=== EduAgent Pipeline: {args.topic} ===", ""]
@@ -99,6 +108,18 @@ def run_pipeline(orchestrator: Orchestrator, args: argparse.Namespace) -> str:
             lines.append(f"## {r['agent']}\n{r['result']}")
         lines.append("")
     return "\n".join(lines)
+
+
+def run_diagnosis(orchestrator: Orchestrator, args: argparse.Namespace) -> str:
+    from eduagent.agents import LearningDiagnosisAgent
+    orchestrator.register(LearningDiagnosisAgent(
+        mode=args.mode, student_name=args.student,
+    ))
+    task = f"诊断{args.topic}章节的学生答题情况"
+    if args.student:
+        task += f"，学生：{args.student}"
+    result = orchestrator.route(task)
+    return result["result"]
 
 
 def main(argv: Optional[list] = None) -> int:
@@ -122,6 +143,7 @@ def main(argv: Optional[list] = None) -> int:
         "quiz": run_quiz,
         "map": run_map,
         "pipeline": run_pipeline,
+        "diagnosis": run_diagnosis,
     }
 
     if args.command == "status":
