@@ -96,6 +96,9 @@ class DAGOrchestrator:
           level 1 = 依赖 level 0 完成
           level 2 = 依赖 level 1 完成
           ...
+
+        Raises:
+            ValueError: 检测到循环依赖时抛出
         """
         nodes: dict[str, DAGNode] = {}
 
@@ -108,6 +111,29 @@ class DAGOrchestrator:
                 if dep_id in nodes:
                     node.parents.append(dep_id)
                     nodes[dep_id].children.append(t.id)
+
+        # ── 环检测 (DFS三色标记法) ──
+        WHITE, GRAY, BLACK = 0, 1, 2
+        color: dict[str, int] = {nid: WHITE for nid in nodes}
+
+        def _has_cycle(nid: str) -> bool:
+            color[nid] = GRAY
+            for child_id in nodes[nid].children:
+                if color[child_id] == GRAY:
+                    return True  # 回边 → 有环
+                if color[child_id] == WHITE:
+                    if _has_cycle(child_id):
+                        return True
+            color[nid] = BLACK
+            return False
+
+        for nid in nodes:
+            if color[nid] == WHITE:
+                if _has_cycle(nid):
+                    raise ValueError(
+                        f"检测到循环依赖，涉及节点: {nid}。"
+                        f"请检查 Task.depends_on 关系。"
+                    )
 
         # 拓扑层级（BFS）
         level0 = [nid for nid, node in nodes.items() if not node.parents]

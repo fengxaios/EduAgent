@@ -111,7 +111,8 @@ class Result:
 
     @property
     def elapsed(self) -> float:
-        return self.finished_at - self.started_at
+        """执行耗时（秒），防止时钟回拨返回负值"""
+        return max(0.0, self.finished_at - self.started_at)
 
     @property
     def ok(self) -> bool:
