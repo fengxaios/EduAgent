@@ -11,9 +11,12 @@
 Pipeline 兼容 — 可接入 Orchestrator.pipeline()，接收上游 QuizGenerator 的输出
 """
 
+import logging
 from typing import Any, Dict, List, Literal, Optional
 
 from eduagent.core.agent import Agent
+
+logger = logging.getLogger(__name__)
 
 # ── 错误类型枚举 ──────────────────────────────────
 
@@ -119,9 +122,18 @@ class LearningDiagnosisAgent(Agent):
         """
         # 从 context 中提取学生答题数据
         if student_answers is None:
-            # 尝试从上游 QuizGenerator 的输出中提取
             prev = context.get("previous_result", context.get("quiz_result", ""))
             student_answers = self._extract_answers(prev)
+
+        # 无答题数据时的兜底处理
+        if not student_answers:
+            logger.warning(
+                f"[{self.name}] 未收到学生答题数据，将生成基于知识点的通用诊断"
+            )
+            context["no_data_warning"] = (
+                "⚠️ 未收到具体的学生答题数据，请基于知识点本身给出该章节"
+                "常见的薄弱点和易错点分析，而非针对特定学生的诊断。"
+            )
 
         context["error_types"] = ERROR_TYPES
         context["mastery_levels"] = MASTERY_LEVELS
@@ -212,12 +224,16 @@ class LearningDiagnosisAgent(Agent):
 
 {mode_instruction}
 
+## 特殊情况处理
+- 如果上下文中带有 "no_data_warning" 字段，说明没有具体的学生答题数据
+- 此时应生成该章节/知识点的**通用薄弱点分析**（而非针对特定学生的诊断）
+- 列出该章节最常见的 5-8 个易错点、典型错误类型和预防建议
+
 ## 注意事项
 - 诊断要具体到每个错误的知识点层面，不要笼统
 - 补救方案要可执行，给出具体的练习方向和数量
 - 数学公式使用 LaTeX 格式
 - 语气鼓励但不虚假，真实指出问题但给出解决路径"""
-        return prompt
 
     # ── 辅助方法 ──────────────────────────────────
 
@@ -237,7 +253,10 @@ class LearningDiagnosisAgent(Agent):
                 if isinstance(data, dict):
                     return data.get("answers", data.get("student_answers", []))
             except (json.JSONDecodeError, TypeError):
-                pass
+                logger.warning(
+                    f"[{self.name}] 上游输出非 JSON 格式，无法自动提取答题数据 "
+                    f"(前100字符): {str(raw)[:100]}"
+                )
         if isinstance(raw, dict):
             return raw.get("answers", raw.get("student_answers", []))
         return []
@@ -257,5 +276,83 @@ class LearningDiagnosisAgent(Agent):
         Returns:
             诊断报告文本
         """
+        if not self.client:
+            # 离线模式：基于数据做本地统计分析
+            return self._offline_analysis(answers, knowledge_area)
+
         task = f"诊断{knowledge_area or '当前'}章节的学生答题情况"
         return self.run(task, student_answers=answers)
+
+    def _offline_analysis(
+        self,
+        answers: List[Dict[str, Any]],
+        knowledge_area: str = "",
+    ) -> str:
+        """离线模式：纯本地统计分析，不调用 LLM"""
+        if not answers:
+            return (
+                "# 学习诊断报告\n\n"
+                "> ⚠️ 未收到答题数据，无法生成诊断。\n\n"
+                "请通过 `student_answers` 参数传入学生答题列表，格式：\n"
+                "```python\n"
+                '[{"question": "...", "student_answer": "...", '
+                '"correct_answer": "...", "knowledge_point": "..."}]\n'
+                "```\n\n"
+                "或配置 LLM API Key 后使用在线诊断模式。"
+            )
+
+        total = len(answers)
+        correct = sum(
+            1 for a in answers
+            if str(a.get("student_answer", "")).strip()
+            == str(a.get("correct_answer", "")).strip()
+        )
+        accuracy = correct / total * 100 if total > 0 else 0
+        label, advice = get_mastery_level(accuracy)
+
+        # 按知识点统计
+        kp_stats: Dict[str, Dict[str, int]] = {}
+        for a in answers:
+            kp = a.get("knowledge_point", "未分类")
+            if kp not in kp_stats:
+                kp_stats[kp] = {"total": 0, "correct": 0}
+            kp_stats[kp]["total"] += 1
+            if str(a.get("student_answer", "")).strip() == str(a.get("correct_answer", "")).strip():
+                kp_stats[kp]["correct"] += 1
+
+        lines = [
+            f"# 学习诊断报告 — {knowledge_area or '综合'}",
+            "",
+            f"> 诊断模式：离线统计 | 分析题目数：{total}道",
+            "",
+            "## 一、总体评估",
+            "",
+            f"| 指标 | 数值 |",
+            f"|------|------|",
+            f"| 正确率 | {correct}/{total} = {accuracy:.1f}% |",
+            f"| 掌握度等级 | {label} |",
+            f"| 建议 | {advice} |",
+            "",
+            "## 二、知识点掌握度",
+            "",
+            "| 知识点 | 正确 | 总数 | 掌握度 | 等级 |",
+            "|--------|------|------|--------|------|",
+        ]
+
+        for kp, stats in sorted(kp_stats.items()):
+            rate = stats["correct"] / stats["total"] * 100 if stats["total"] > 0 else 0
+            lvl, _ = get_mastery_level(rate)
+            lines.append(
+                f"| {kp} | {stats['correct']} | {stats['total']} | {rate:.0f}% | {lvl} |"
+            )
+
+        lines.extend([
+            "",
+            "## 三、下一步",
+            "",
+            f"- {advice}",
+            "- 💡 配置 LLM API Key 后可使用在线诊断，获得详细错误归因和个性化补救方案",
+            "- 💡 在线模式命令：`python -m eduagent diagnosis \"{knowledge_area or '章节'}\"`",
+        ])
+
+        return "\n".join(lines)

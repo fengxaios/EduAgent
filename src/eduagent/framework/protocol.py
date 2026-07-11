@@ -123,4 +123,6 @@ class Result:
 
     @classmethod
     def failure(cls, task_id: str, errors: list[str], **kwargs) -> "Result":
-        return cls(task_id=task_id, status=TaskStatus.FAILED, errors=errors, **kwargs)
+        now = time.time()
+        return cls(task_id=task_id, status=TaskStatus.FAILED, errors=errors,
+                   started_at=now, finished_at=now, **kwargs)

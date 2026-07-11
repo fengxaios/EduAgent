@@ -45,6 +45,8 @@ def get_parser() -> argparse.ArgumentParser:
     # pipeline — run multi-agent pipeline
     pl = sub.add_parser("pipeline", help="Run multi-agent pipeline")
     pl.add_argument("topic", help="Starting topic for the pipeline")
+    pl.add_argument("--mode", choices=["brief", "standard", "detailed"], default="standard",
+                    help="Output detail level for all agents")
 
     # diagnosis — learning diagnosis
     diag = sub.add_parser("diagnosis", help="Diagnose student learning gaps")
@@ -86,11 +88,11 @@ def run_pipeline(orchestrator: Orchestrator, args: argparse.Namespace) -> str:
         LearningDiagnosisAgent,
     )
     orchestrator.register_all([
-        KnowledgeMapperAgent(),
-        LessonPlannerAgent(),
+        KnowledgeMapperAgent(mode=args.mode),
+        LessonPlannerAgent(mode=args.mode),
         QuizGeneratorAgent(),
-        LearningDiagnosisAgent(),
-        ReporterAgent(),
+        LearningDiagnosisAgent(mode=args.mode),
+        ReporterAgent(mode=args.mode),
     ])
     results = orchestrator.pipeline([
         {"agent": "knowledge_mapper", "task": f"拆解{args.topic}的知识点"},
