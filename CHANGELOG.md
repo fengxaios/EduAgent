@@ -8,7 +8,7 @@ All notable changes to EduAgent will be documented in this file.
 - **Multi-Agent Distributed Orchestration Framework** (`framework/`): DAG-based parallel dispatch, isolated execution with snapshot rollback, context WAL, fault tolerance, and cron automation
 - **LearningDiagnosisAgent**: Student-side feedback diagnosis with 7 error types, 4 mastery levels, offline statistical analysis, and personalized remediation plans
 - **Harness Engineering Practice Guide** (`docs/HARNESS_ENGINEERING_GUIDE.md`): Complete methodology for long-running AI agent reliability
-- **Multi-Agent Testing Methodology** (`docs/MULTI_AGENT_TESTING.md`): Documented 7-agent, 2-round, 490-test collaborative testing process
+- **Multi-Agent Testing Methodology** (`docs/MULTI_AGENT_TESTING.md`): Documented 7-agent, 2-round, 459-test collaborative testing process
 - **CLI `diagnosis` command**: `python -m eduagent diagnosis "topic" --student "name" --mode detailed`
 - **CLI `--mode` flag for pipeline**: Control output detail level across all pipeline agents
 

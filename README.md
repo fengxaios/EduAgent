@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)](https://github.com/fengxaios/EduAgent)
 [![Release](https://img.shields.io/badge/Release-v1.1.0-blue)](https://github.com/fengxaios/EduAgent/releases/tag/v1.1.0)
-[![Tests](https://img.shields.io/badge/Tests-490_passed-green)](https://github.com/fengxaios/EduAgent/actions)
+[![Tests](https://img.shields.io/badge/Tests-65_passed-green)](https://github.com/fengxaios/EduAgent/actions)
 [![Python](https://img.shields.io/badge/Python-3.10_|_3.11_|_3.12-blue)](https://www.python.org/)
 
 🇨🇳 [中文文档](README_CN.md)
@@ -352,7 +352,7 @@ pip install -e ".[dev]"
 pytest tests/ -v
 ```
 
-34 unit tests covering agent lifecycle, orchestrator routing, memory persistence, tool registration, and evaluation scoring.
+34 pytest unit tests covering agent lifecycle, orchestrator routing, memory persistence, tool registration, and evaluation scoring, plus 31 standalone edge-case tests.
 
 ## 🗺️ Roadmap
 
