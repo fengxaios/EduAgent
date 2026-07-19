@@ -54,6 +54,20 @@ def get_parser() -> argparse.ArgumentParser:
     diag.add_argument("--student", "-s", default="", help="Student name")
     diag.add_argument("--mode", choices=["brief", "standard", "detailed"], default="standard")
 
+    # profile — list agent profiles
+    sub.add_parser("profiles", help="List all agent profiles with richness scores")
+
+    # student — register student profile
+    sp = sub.add_parser("student", help="Register or show student profile")
+    sp.add_argument("name", help="Student name")
+    sp.add_argument("--grade", "-g", default="", help="Grade level")
+    sp.add_argument("--weak", "-w", default="", help="Weak points (comma separated)")
+
+    # recommend — ZPD-based teaching recommendation
+    rc = sub.add_parser("recommend", help="Get ZPD-based teaching recommendation")
+    rc.add_argument("student", help="Student name")
+    rc.add_argument("topic", help="Knowledge topic")
+
     # status
     sub.add_parser("status", help="Show orchestrator status")
 
@@ -146,11 +160,65 @@ def main(argv: Optional[list] = None) -> int:
         "map": run_map,
         "pipeline": run_pipeline,
         "diagnosis": run_diagnosis,
+        "profiles": None,  # handled inline
+        "student": None,
+        "recommend": None,
     }
 
     if args.command == "status":
-        orch.register_all([])  # just show status
+        from eduagent.core import AgentProfile, StudentProfile
         print(f"EduAgent v{__version__} | Model: {orch.model}")
+        print(f"  Agents: {len(orch.agents)} | Profiles: {len(orch.profiles)} | Students: {len(orch.student_pool)}")
+        for name, agent in orch.agents.items():
+            p_info = ""
+            if name in orch.profiles:
+                p_info = f" [richness={orch.profiles[name].profile_richness:.3f}]"
+            print(f"  - {name}: {agent.__class__.__name__}{p_info}")
+        return 0
+
+    if args.command == "profiles":
+        profiles = orch.list_profiles()
+        if not profiles:
+            print("没有注册任何 AgentProfile。")
+        for p in profiles:
+            print(f"\n📋 {p['name']} ({p['role']})")
+            print(f"   描述: {p['description']}")
+            print(f"   技能: {', '.join(p['skills'][:5])}")
+            print(f"   丰富度: {p['profile_richness']:.3f}")
+        return 0
+
+    if args.command == "student":
+        from eduagent.core import StudentProfile, ZPDLevel
+        if args.name in orch.student_pool:
+            s = orch.student_pool[args.name]
+            print(f"👤 学生: {s.name}")
+            print(f"   年级: {s.grade or '未知'}")
+            print(f"   薄弱点: {', '.join(s.weak_points) or '无'}")
+            print(f"   已掌握: {', '.join(s.known_points) or '无'}")
+            print(f"   交互次数: {s.interaction_history}")
+            return 0
+        # 注册新学生
+        sp = StudentProfile(
+            name=args.name,
+            grade=args.grade,
+            weak_points=args.weak.split(",") if args.weak else [],
+        )
+        orch.register_student(sp)
+        print(f"✅ 学生 {args.name} 已注册")
+        return 0
+
+    if args.command == "recommend":
+        rec = orch.recommend_adaptation(args.student, args.topic)
+        if "error" in rec:
+            print(f"❌ {rec['error']}")
+            return 1
+        print(f"📊 ZPD 推荐策略")
+        print(f"   学生: {rec['student']}")
+        print(f"   主题: {rec['topic']}")
+        print(f"   ZPD 层级: {rec['zpd_level']}")
+        print(f"   建议操作: {rec['action']}")
+        print(f"   推荐 Agent: {rec['agent']}")
+        print(f"   难度: {rec['difficulty']}")
         return 0
 
     if args.command in handlers:
